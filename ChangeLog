@@ -1,0 +1,62 @@
+2004-07-04  Kazuhiko  <kazuhiko@fdiary.net>
+	* eb.c (rebfont_topng): add for eb-4.1
+	(font2bitmapformat): conv_func returns EB_Error_Code when eb-4.1
+	or later
+
+2004-03-21  nyasu3w  <nyasu3w@users.sourceforge.net>
+	* eb.c: fixed the mispatched eb_set_appendix_subbook()
+
+2004-03-15  nyasu3w  <nyasu3w@users.sourceforge.net>
+	* eb.c: delete the modification in 2004-03-14
+	eb-4.0 needs to be patched by ftp://ftp.sra.co.jp/pub/misc/eb/eb-4.0+.diff
+	* eb.c: Bumped version number to 2.5
+
+2004-03-14  nyasu3w  <nyasu3w@users.sourceforge.net>
+	* eb.c: add EB_P definition for its misdefinition in original eb-4.0
+
+2004-03-11  Kazuhiko  <kazuhiko@fdiary.net>
+	* extconf.rb: use 'RUBY_PLATFORM' instead of 'PLATFORM'
+
+2004-03-07  nyasu3w  <nyasu3w@users.sourceforge.net>
+	* extconf.rb: change the way to support pthread
+	* eb.c: add #include <eb/sysdefs.h> for eb-4.0
+
+2004-02-29  nyasu3w  <nyasu3w@users.sourceforge.net>
+
+	* eb.c: Add eb_set_appendix_subbook() in reb_setsubbook().
+	Patched by YAMADA Kazushige.
+	* eb.c: Move declaration of get_eb_appendix()
+
+2004-01-07  nyasu3w  <nyasu3w@users.sourceforge.net>
+
+	* extconf.rb: Add "-lintl" flags for FreeBSD, patched by Kouhei Sutou.
+
+2003-12-26  Kazuhiko  <kazuhiko@fdiary.net>
+
+	* extconf.rb: read eb.conf and check whether eb supports pthread
+	or not.
+
+2003-11-21  Kazuhiko  <kazuhiko@fdiary.net>
+
+	* eb.c: Bumped version number to 2.4. Add new hooks
+	HOOK_BEGIN_DECORATION and HOOK_END_DECORATION.
+
+2003-08-20  Kazuhiko  <kazuhiko@fdiary.net>
+
+	* eb.c: Bumped version number to 2.3.
+	Use 'rb_block_proc' if possible.
+	* extconf.rb: Check 'rb_block_proc' for ruby-1.8.
+
+2003-01-26  nyasu3w  <nyasu3w@users.sourceforge.net>
+
+	* eb.c: Reform coding convention.(ANSI & indent -npcs -br -ts 0 -i 4)
+	* eb.c: Revise HOOK mis-definition(HOOK_END_IN_COLOR_GRAPHIC)
+	* eb.c: Add a new constant EB::RUBYEB_VERSION.
+
+2003-01-24  Kazuhiko  <kazuhiko@fdiary.net>
+
+	* eb.c: Remove code for eb < 3.2 support. Bug fix of HOOK
+	definition in case of eb-3.2.
+	(copyright_available?): New method.
+	
+

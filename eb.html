@@ -1,0 +1,424 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<HTML LANG="ja">
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-2022-JP">
+<LINK REV="MADE" HREF="mailto:nyasu3w@users.sourceforge.net">
+<LINK REL="INDEX" HREF="http://rubyeb.sourceforge.net/">
+<TITLE>module EB</TITLE>
+</HEAD>
+
+<BODY>
+<H1>Ruby/EB 拡張ライブラリ</H1>
+for version 2.5
+
+<H2>目次</H2>
+<UL>
+ <LI><A HREF="#DESC">概要</A>
+ <LI><A HREF="#GET">取得</A>
+</UL>
+<UL>
+ <LI><A HREF="#EB">module EB</A>
+ <LI><A HREF="#BOOK">EB::Book</A>
+ <UL>
+  <LI><A HREF="#ebook">メソッド（書籍）</A>
+  <LI><A HREF="#subbook">メソッド（副本）</A>
+  <LI><A HREF="#search">メソッド（検索）</A>
+  <LI><A HREF="#fonts">メソッド（副本：外字・フォント）</A>
+  <LI><A HREF="#multimedia">メソッド（マルチメディアデータ）</A>
+ </UL>
+ <LI><A HREF="#POSITION">EB::Position</A>
+ <LI><A HREF="#EXTFONT">EB::ExtFont</A>
+ <LI><A HREF="#HOOKSET">EB::Hookset</A>
+ <LI><A HREF="#CONSTANTS">EB::定数</A>
+</UL>
+
+
+<H3><A NAME="DESC">概要</A></H3>
+<P>
+EPWING/EBなどのCD-ROM 書籍にアクセスするための関数を集めた、C 言語のライブラリ
+「<A HREF="http://www.sra.co.jp/people/m-kasahr/eb/index-ja.html">EB</A>」
+をrubyから利用するための拡張ライブラリです。EBについて詳しくは配布元である
+<A HREF="http://www.sra.co.jp/people/m-kasahr/eb/index-ja.html">こちら</A>
+のページへどうぞ。EBの作者はMotoyuki Kasahara様です。
+</P>
+<P>
+利用には当然EBが正しくインストールされている必要があります。<BR>
+Ruby/EB version2より、EBの3.2以降を要求します。
+また、Ruby/EBの1.xに対してテキストフック関係の仕様が変更されています。ご注意下さい。
+</P>
+<P>
+EBが漢字コードとしてEUCを要求しますので、$KCODEはEUCでお願いします。
+</P>
+
+<P>
+EB自身がGPLのため、本Ruby拡張ライブラリもGPLとします。
+</P>
+<P>
+実はこの文章は
+<A HREF="http://www.sra.co.jp/people/m-kasahr/eb/doc-ja/eb-ja_toc.html">こちら</A>
+の笠原様の文章のパクリの部分が多々あります。どうもすみません。
+</P>
+
+
+<P>
+Book#search2系、Book#content,フック関連、Positionクラスなどは黒田様からのパッチに拠るところが大きいです。どうもありがとうございました。
+</P>
+
+<P>
+EBの3.0alphaへの対応は新改様のコーディングに依るものです。どうもありがとうございました。
+</P>
+<P>
+EB3.0+への対応は、やまだ様、うえち様両名よりパッチを頂きました。どうもありがとうございました。
+</P>
+
+<P>
+EB-3.2.1への対応は、高宗様、knu様作成のパッチによります。どうもありがとうございました。
+</P>
+<p>
+いいかげんだったAppendixへの対応は、山田様によって修正されました。どうもありがとうございます。
+</p>
+
+<p>
+EB-4.0を利用する場合は、EB-4.0本体に<a href="ftp://ftp.sra.co.jp/pub/misc/eb/eb-4.0+.diff">パッチ</a>が必要です。
+</p>
+
+<P>
+RubyEB 2.2より、かずひこ氏が開発に参加されました。
+</P>
+
+<H3><A NAME="GET">取得</A></H3>
+<A HREF="http://rubyeb.sourceforge.net/index-ja.html">RubyEBのページ</A>から取得して頂けます。<BR>
+また、cvsから取得すると、一番新しいものが手に入ったりするかもしれません。しかし大々的な不具合が混入中の可能性もあります。<BR>
+→<A HREF="https://sourceforge.net/cvs/?group_id=67555">方法</A><BR>
+
+<HR>
+文中の最大ブロック長はデフォルトでは65530bytesです。
+
+<H2><A NAME="EB">module EB</A></H2>
+<DL>
+ <DT>errorcode
+  <DD>ebでエラーが発生したときセットされます。
+ <DT>error_message
+  <DD>errorcodeを文字列にしたものを返します
+</DL>
+
+<H2><A NAME="BOOK">EB::Book</A></H2>
+<H3>クラスメソッド</H3>
+<DL>
+ <DT>new
+</DL>
+
+<H3><A NAME="ebook">メソッド(書籍)</A></H3>
+<DL>
+ <DT>bind
+  <DD>オブジェクトを、パス path にある CD-ROM 書籍に結び付けます。パスは書籍のトップディレクトリ、つまり `CATALOG' か `CATALOGS' ファイルのあるディレクトリでなくてはなりません。
+ <DT>suspend
+  <DD>オブジェクトが現在選択中のもの、すなわち、選択中の副本、言語、フォントの高さをすべて未選択にします
+ <DT>bound?
+  <DD>書籍に結び付いているかどうかを調べます。
+ <DT>disctype
+  <DD>ディスクの形式を返します。 オブジェクトはあらかじめ書籍に結び付いていなければなりません。 
+ <DT>path
+  <DD>書籍のパスを返します。 オブジェクトはあらかじめ書籍に結び付いていなければなりません。 
+ <DT>charcode
+  <DD>書かれている文字コードを返します。 オブジェクトはあらかじめ書籍に結び付いていなければなりません。 
+ <DT>subbook_count
+  <DD>オブジェクト内の副本の数を返します。オブジェクトは、あらかじめ書籍に結び付けられていなくてはなりません。 
+ <DT>subbook_list
+  <DD>副本のリストを作成して副本コードの配列として返します。ここで得られる副本コードを用いて、set(subbook)/title/directoryメソッドにおいて副本を指定します。
+ <DT>set(subbook) : alias subbook=
+  <DD>副本を選択します。
+ <DT>subbook
+  <DD>現在選択中の副本の副本コードを返します。あらかじめ、オブジェクト内のいずれかの副本が選択されていなくてはなりません。 設定されていない場合は-1となります。
+ <DT>unset
+  <DD>副本の選択を解除します。
+ <DT>hookset/hooset=
+  <DD>テキストフックのセットを取得・設定します。設定する場合はEB::Hooksetのインスタンスかnilしか出来ません。nilを設定したときはフックを解除します。
+ <DT>appendix_path=
+  <DD>Appendixを設定します。
+</DL>
+
+<H3><A NAME="subbook">メソッド(副本)</A></H3>
+<DL>
+ <DT>title(subbook=currently)
+  <DD>現在選択中の副本の題名を返します。あらかじめ、オブジェクト内のいずれかの副本が選択されていなくてはなりません。
+  <DD>引数を省略すると、現在選択されている副本の題名を返します。
+ <DT>directory(subbook=currently)
+  <DD>現在選択中の副本のディレクトリ名を返します。あらかじめ、オブジェクト内内のいずれかの副本が選択されていなくてはなりません。
+  <DD>引数を省略すると、現在選択されている副本のディレクトリを返します。
+ <DT>search_available?
+  <DD>現在選択中の副本が前方一致検索メソッドを持っているかどうか調べます。
+  <DD>副本が選択されていない場合はRuntimeErrorをraiseします。
+ <DT>exactsearch_available?
+  <DD>現在選択中の副本が完全一致検索メソッドを持っているかどうか調べます。
+  <DD>副本が選択されていない場合はRuntimeErrorをraiseします。
+ <DT>endsearch_available?
+  <DD>現在選択中の副本が後方一致検索メソッドを持っているかどうか調べます。
+  <DD>副本が選択されていない場合はRuntimeErrorをraiseします。
+ <DT>keywordsearch_available?
+  <DD>現在選択中の副本がキーワード検索メソッドを持っているかどうか調べます。
+  <DD>副本が選択されていない場合はRuntimeErrorをraiseします。
+ <DT>menu_available?
+  <DD>メニューが利用できるかどうかを調べます。
+  <DD>副本が選択されていない場合などでRuntimeErrorをraiseします。
+ <DT>copyright_available?
+  <DD>著作権表示が利用できるかどうかを調べます。
+ <DT>copyright
+  <DD>著作権表示を返します。
+</DL>
+
+<H3><A NAME="search">メソッド(検索)</A></H3>
+<DL>
+ <DT>search(word,max=all)
+  <DD>wordをキーとして前方一致検索を行い、結果を配列に入れて返します。配列の各要素は[ heading, text ]として与えられます。
+  <DD>イテレータとして用いると、[heading,text]の配列をyieldします。返り値としてEB::Cancelを与えると、イテレートを終了します。(breakで抜けても良いです)
+ <DT>exactsearch(word,max=all)
+  <DD>wordをキーとして完全一致検索を行い、結果を配列に入れて返します。配列の各要素は[ heading, text ]として与えられます。
+  <DD>イテレータとして用いると、[heading,text]の配列をyieldします。返り値としてEB::Cancelを与えると、イテレートを終了します。(breakで抜けても良いです)
+ <DT>endsearch(word,max=all)
+  <DD>wordをキーとして後方一致検索を行い、結果を配列に入れて返します。配列の各要素は[ heading, text ]として与えられます。
+  <DD>イテレータとして用いると、[heading,text]の配列をyieldします。返り値としてEB::Cancelを与えると、イテレートを終了します。(breakで抜けても良いです)
+ <DT>keywordsearch(words,max=all)
+  <DD>wordsはキーワードの配列とし、キーワードによる検索を行います。それ以外は上記検索メソッドと同じ。
+
+ <DT>search2(word,max=all)
+ <DT>exactsearch2(word,max=all)
+ <DT>endsearch2(word,max=all)
+  <DD>この３つはそれぞれ、search/exactsearch/endsearchと同じですが、配列に入れたりyieldするものが異なります。
+  <DD>イテレータとして用いると、[結果のEB::Positionインスタンス,検索語]をyieldします。そうでない場合は、同じ物を配列に入れて返します。
+ <DT>keywordsearch2(words,max=all)
+  <DD>wordsはキーワードの配列とし、キーワードによる検索を行います。それ以外は上記検索メソッドと同じ。
+ <DT>menu
+  <DD>トップメニューの内容を返します。各メニュー項目の参照先はテキストフックのCANDIDATEやREFERENCEとして渡されます。
+ <DT>menu2
+  <DD>トップメニューの書籍上の位置をEB::Positionのインスタンスで返します。
+ <DT>content(position)
+  <DD>positionはEB::Positionのインスタンスです。
+  <DD>positionで示される位置の本文の内容を返します。最大ブロック長まで読み込みます。
+  <DD>イテレータとして用いると最大ブロック長のブロックをyieldしながら本文の区切りが来るまで読み込みます。
+ <DT>content_noseek
+  <DD>シーク動作を行わずに本文の内容を読みとり返します。最大ブロック長だけ読み込みます。このメソッドを読む前にはcontent()などでシークを行っておく必要があります。
+
+</DL>
+
+<H3><A NAME="fonts">メソッド（副本：外字・フォント）</A></H3>
+<DL>
+ <DT>fontcode_list
+  <DD>利用可能なフォントの一覧（配列）を返します。中身はintegerですが、それぞれEB::FONT_**の定数に対応します。FONT_16,FONT_24,FONT_30,FONT_48がそれぞれ0,1,2,3です。
+ <DT>fontcode/fontcode=
+  <DD>フォントの大きさを取得・指定します。EB::FONT_**の定数を与えます。取得する外字フォントのサイズに影響します。fontcode未設定の場合はEB::FONT_INVALID(-1)となります。
+ <DT>get_widefont(code)
+  <DD>codeで示される全角外字フォントを得ます。返値はEB::ExtFontのインスタンスです。
+ <DT>get_narrowfont
+  <DD>codeで示される半角外字フォントを得ます。返値はEB::ExtFontのインスタンスです。
+ <DT>wide_startcode
+  <DD>選択中の副本における全角外字の先頭コードを返します。
+ <DT>wide_endcode
+  <DD>選択中の副本における全角外字の終了コードを返します。
+ <DT>narrow_startcode
+  <DD>選択中の副本における半角外字の先頭コードを返します。
+ <DT>narrow_endcode
+  <DD>選択中の副本における半角外字の終了コードを返します。
+</DL>
+
+<H3><A NAME="multimedia">メソッド(マルチメディアデータ)</A></H3>
+<DL>
+ <DT>read_monographic(pos,width,height)
+  <DD>モノクロ図版のデータを取得し、Stringとして返します。
+  <DD>posはEB::Positionのインスタンスで読み込み位置を示します。また、widthとheightで読み込まれるべき図版のサイズを指定します。サイズや位置はテキストフックの引数として得られます。
+ <DT>read_colorgraphic(pos,stoplength=最大ブロック長)
+ <DT>read_colorgraphic(pos,stoplength=最大ブロック長){|block| proc}
+  <DD>カラーの図版を取得し、Stringとして返します。（最大stoplengthバイトまで）
+  <DD>イテレータとして用いるとstoplengthバイトを読み出してblockとして与え、終わるまで繰り返します。その場合、メソッドの返値は読み込み長を返します。
+  <DD>posはEB::Positionのインスタンスで読み込み位置を示します。また、stoplengthで読み込みバイト数を指定します。stoplengthは読み込むバイト数の上限です。電子ブックではEBライブラリに「データ終了位置が来ても読み込みをやめない」という制限事項があります。（BMPやJPEGのデコードを本ライブラリで行い、適当に止めれれば良いのですが）
+ <DT>read_wavedata(startpos,endpos,stoplength=最大ブロック長)
+  <DD>音声データをStringとして取得します。（最大stoplengthバイトまで）
+  <DD>イテレータとして用いるとstoplengthバイトを読み出してblockとして与え、終わるまで繰り返します。その場合、メソッドの返値は読み込み長を返します。
+  <DD>startposは開始位置、endposは終了位置を示す、EB::Positionのインスタンスです。これらはテキストフックから情報が得られます。
+ <DT>read_mpeg(code1,code2,code3,code4,stoplength=最大ブロック長)
+  <DD>動画データをStringとして取得します。（最大stoplengthバイトまで）
+  <DD>イテレータとして用いるとstoplengthバイトを読み出してblockとして与え、終わるまで繰り返します。その場合、メソッドの返値は読み込み長を返します。
+  <DD>code1かcode4までは、HOOK_BEGIN_MPEGのargv[2]からargv[5]に相当します。
+ <DT>compose_mpegfilename(code1,code2,code3,code4)
+  <DD>code1からcode4で示される動画のファイル名を取得します。
+</DL>
+
+<H2><A NAME="POSITION">EB::Position</A></H2>
+<H3>クラスメソッド</H3>
+<DL>
+ <DT>new(page,offset)
+  <DD>ページとオフセットからEB_Positionを設定します。
+</DL>
+
+<H3>属性</H3>
+読み書き可能です。
+<DL>
+ <DT>page
+ <DT>offset
+</DL>
+
+<H2><A NAME="EXTFONT">EB::ExtFont</A></H2>
+外字を表します。インスタンスはEB::Book#get_widefontもしくはEB::Bookget_narrowfontで取得します。
+<DL>
+ <DT>widefont?
+  <DD>外字が全角であればtrueを返します。
+ <DT>code
+  <DD>外字のコードを返します。
+ <DT>to_xbm
+  <DD>外字のビットマップデータをxbm形式のStringで返します。
+ <DT>to_xpm
+  <DD>外字のビットマップデータをxpm形式のStringで返します。
+ <DT>to_gif
+  <DD>外字のビットマップデータをgif形式のStringで返します。
+  <DD>ファイルに落とせばそのままgifファイルになります。
+ <DT>to_bmp
+  <DD>外字のビットマップデータをbmp形式のStringで返します。
+  <DD>ファイルに落とせばそのままbmpファイル(Windows・OS/2)になります。
+ <DT>to_png
+  <DD>外字のビットマップデータをpng形式のStringで返します。
+  <DD>ファイルに落とせばそのままpngファイルになります。
+</DL>
+
+<H2><A NAME="HOOKSET">EB::Hookset</A></H2>
+<H3>クラスメソッド</H3>
+<DL>
+ <DT>new
+  <DD>Hooksetのインスタンスを作成します。これはテキストフックを扱います。
+</DL>
+<H3>メソッド</H3>
+<DL>
+ <DT>register(hook,proc)
+ <DT>register(hook){|eb,argv|  proc }
+  <DD>hookはフックの種類を示す定数です。
+  <DD>ebは呼び出し元のEB::Bookであり、argvはテキストフックの引数の配列です。
+  <DD>イベント発生時に呼ばれるメソッドを設定します。hookに与える定数は、EB::の下に定数として定義されています(EB::HOOK_****)。"EB::定数"の項参照。
+  <DD>また、返値がnil以外の場合はテキストに返値を書き込みます。(String以外の場合はObject#to_strします）
+  <DD>同じフックに対して複数回設定を行うと、最後に行った設定のみ有効です。
+</DL>
+
+
+<H2><A NAME="CONSTANTS">EB::定数</A></H2>
+Ruby EB のバージョンは以下の定数で定義されています。
+<UL>
+<LI>RUBYEB_VERSION
+</UL>
+また、eb-3.2以降では以下の定数が定義されています。eb.cの最後の方と、EB Libraryのリファレンスを参照して下さい。
+<UL>
+<LI>RUBYEB_VERSION
+<LI>FONT_16
+<LI>FONT_24
+<LI>FONT_30
+<LI>FONT_48
+<LI>FONT_INVALID
+<LI>HOOK_BEGIN_CANDIDATE
+<LI>HOOK_BEGIN_COLOR_BMP(hookcode,?,page,offset)
+<LI>HOOK_BEGIN_COLOR_JPEG(hookcode,?,page,offset)
+<LI>HOOK_BEGIN_DECORATION(decoration)
+<LI>HOOK_BEGIN_EMPHASIS
+<LI>HOOK_BEGIN_GRAPHIC_REFERENCE
+<LI>HOOK_BEGIN_GRAY_GRAPHIC
+<LI>HOOK_BEGIN_IN_COLOR_BMP(hookcode,?,page,offset)
+<LI>HOOK_BEGIN_IN_COLOR_JPEG(hookcode,?,page,offset)
+<LI>HOOK_BEGIN_KEYWORD
+<LI>HOOK_BEGIN_MONO_GRAPHIC(hookcode,?,height,width)
+<LI>HOOK_BEGIN_MPEG(hookcode,?,code1,code2,code3,code4)
+<LI>HOOK_BEGIN_NARROW
+<LI>HOOK_BEGIN_NO_NEWLINE
+<LI>HOOK_BEGIN_REFERENCE
+<LI>HOOK_BEGIN_SUBSCRIPT
+<LI>HOOK_BEGIN_SUPERSCRIPT
+<LI>HOOK_BEGIN_WAVE(hookcode,?, begin_page, begin_offset, end_page, end_offset)
+<LI>HOOK_END_CANDIDATE_GROUP(hookcode,page,offset)
+<LI>HOOK_END_CANDIDATE_LEAF(hookcode,0,0)
+<LI>HOOK_END_COLOR_GRAPHIC(hookcode)
+<LI>HOOK_END_DECORATION
+<LI>HOOK_END_EMPHASIS
+<LI>HOOK_END_GRAPHIC_REFERENCE
+<LI>HOOK_END_GRAY_GRAPHIC
+<LI>HOOK_END_IN_COLOR_GRAPHIC(hookcode)
+<LI>HOOK_END_KEYWORD
+<LI>HOOK_END_MONO_GRAPHIC(hookcode,page,offset)
+<LI>HOOK_END_MPEG
+<LI>HOOK_END_NARROW
+<LI>HOOK_END_NO_NEWLINE
+<LI>HOOK_END_REFERENCE (hookcode,page,offset)
+<LI>HOOK_END_SUBSCRIPT
+<LI>HOOK_END_SUPERSCRIPT
+<LI>HOOK_END_WAVE
+<LI>HOOK_GB2312
+<LI>HOOK_GRAPHIC_REFERENCE
+<LI>HOOK_INITIALIZE
+<LI>HOOK_ISO8859_1()
+<LI>HOOK_NARROW_FONT(code)
+<LI>HOOK_NARROW_JISX0208()
+<LI>HOOK_NEWLINE()
+<LI>HOOK_SET_INDENT(hookcode,indent)
+<LI>HOOK_WIDE_FONT(code)
+<LI>HOOK_WIDE_JISX0208()
+</UL>
+
+<HR>
+<H3>例</H3>
+<PRE>
+<CODE>
+#!/bin/env ruby -Ke
+require "eb"
+
+b=EB::Book.new
+b.bind("/cdrom")
+b.subbook=0
+b.exactsearch( "じしょ" ) do |word,desc|
+  print "====================\n"
+  print "==   ",word,"\n"
+  print "\n",desc,"\n"
+#  EB::Cancel   # yield will be stopped
+end
+</CODE>
+</PRE>
+
+<H2>例2</H2>
+<PRE>
+<CODE>
+require "eb"
+
+b=EB::Book.new
+b.bind("/cdrom")
+b.subbook=0
+b.exactsearch2( "じしょ" ) do |pos,word|
+  print "====================\n"
+  print "==   ",word,"\n"
+  print "\n",b.content(pos),"\n"
+#  EB::Cancel   # yield will be stopped
+end
+</CODE>
+</PRE>
+
+<H2>履歴</H2>
+<UL>
+ <LI>v2.6 2004/??/?? eb-4.1に対応。EB::ExtFont#to_pngの追加。
+ <LI>v2.5 2004/03/15 Appendixを正しく読むように修正。eb-4.0(パッチ必要）に対応。
+ <LI>v2.4 2003/12/26 文字装飾系フックと pthread に対応
+ <LI>v2.3 2003/08/20 ruby-1.8に対応
+ <LI>v2.2 2003/01/26 eb-3.2.3での不具合修正とかずひこ氏による機能追加
+ <LI>v2.1 2003/01/22 かずひこ氏による定数定義ミスとcompose_mpegfilenameのバグフィクス
+ <LI>v2.0 2003/01/05 機能強化（画像・音声・動画・外字） 機能変更（フックなど）
+ <LI>v1.7 2002/03/31 高宗様、knu様のパッチにより、EB-3.2.1へ対応（定数）
+ <LI>v1.6 2001/06/22 やまだ様、うえち様のパッチによりEB3.0の定数名変更に対応
+ <LI>v1.5 2001/04/04 新改様のコードにより、EBの3.0に対応
+ <LI>v1.4(再) 2000/06/26 折田様のパッチにより、人を惑わすextconf.rbを修正
+ <LI>v1.4 2000/06/23 search2系、イテレータ使用時のキャンセルが効くように
+ <LI>v1.3 2000/06/22 黒田様からの再パッチ。活動時間の差異によるタイミングずれが....
+ <LI>v1.2 2000/06/22 v1.1への修正。メソッド追加、機能整理など。(未公開)
+ <LI>v1.1 2000/06/21 黒田様からのパッチによるsearch2系、Position、フック（未公開）
+ <LI>v1.0 2000/04/10 初版
+</UL>
+
+<HR>
+<ADDRESS><A HREF="mailto:nyasu3w@users.sourceforge.net">
+Email: nyasu3w@users.sourceforge.net
+</A></ADDRESS>
+
+
+</BODY>
+</HTML>
