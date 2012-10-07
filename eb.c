@@ -189,7 +189,7 @@ reb_bind(VALUE obj, VALUE path)
     Data_Get_Struct(obj, EB_Book, eb);
     r = eb_bind(eb, StringValueCStr(path));
     if (r != EB_SUCCESS) {
-        rb_raise(rb_eRuntimeError, eb_error_message(r));
+        rb_raise(rb_eRuntimeError, "%s", eb_error_message(r));
         return Qfalse;
     }
     return obj;
@@ -379,7 +379,7 @@ have_search(VALUE obj, EB_Error_Code(*funct) (EB_Book *))
     Data_Get_Struct(obj, EB_Book, eb);
     r = (*funct) (eb);
     if (!r && eb_error == EB_ERR_NO_CUR_SUB) {
-        rb_raise(rb_eRuntimeError, eb_error_message(eb_error));
+        rb_raise(rb_eRuntimeError, "%s", eb_error_message(eb_error));
         return Qfalse;
     }
     return (r) ? Qtrue : Qfalse;
@@ -432,7 +432,7 @@ get_eb_texthook(VALUE reb)
 static VALUE
 content_read(VALUE reb, EB_Book * eb, EB_Appendix * appendix, EB_Hookset * text_hookset)
 {
-    int len;
+    ssize_t len;
     char desc[MAX_STRLEN + 1];
 
     eb_error = eb_read_text(eb, appendix, text_hookset, (void *) reb,
@@ -462,7 +462,7 @@ get_item(VALUE reb, EB_Book * eb, EB_Hit * hit)
     EB_Appendix *appendix;
     VALUE item;
     char desc[MAX_STRLEN + 1];
-    int len;
+    ssize_t len;
     item = rb_ary_new2(2);
 
     if (eb_seek_text(eb, &(hit->heading)) < 0) {
@@ -620,7 +620,8 @@ reb_searchkeyword(int argc, VALUE * argv, VALUE obj)
 VALUE
 hitmaker2(VALUE reb, EB_Book * eb, unsigned int max, int flag)
 {
-    int hitcount, i, len, broken;
+    int hitcount, i, broken;
+    ssize_t len;
     int hitpushed;
     VALUE robj, item, can;
     EB_Hit hits[MAX_HITS];
@@ -992,7 +993,7 @@ read_binary(EB_Book * eb, long maxlen, int iterateflag)
 {
     char buffer[MAX_STRLEN];
     long readbytes;
-    int bitmap_len;
+    ssize_t bitmap_len;
     int blocksize;
     EB_Error_Code retcode;
     VALUE robj;
@@ -1011,7 +1012,7 @@ read_binary(EB_Book * eb, long maxlen, int iterateflag)
     while (bitmap_len != 0) {
         retcode = eb_read_binary(eb, blocksize, buffer, &bitmap_len);
         if (retcode != EB_SUCCESS) {
-            rb_raise(rb_eRuntimeError, eb_error_message(retcode));
+            rb_raise(rb_eRuntimeError, "%s", eb_error_message(retcode));
             return Qfalse;
         }
         if (iterateflag) {
@@ -1105,7 +1106,7 @@ reb_read_mpeg(int argc, VALUE * argv, VALUE obj)
     EB_Error_Code retcode;
     EB_Book *eb;
     long maxlen;
-    int param[4];
+    unsigned int param[4];
     int i;
 
     if (argc < 4) {
@@ -1131,7 +1132,7 @@ reb_compose_mpegfilename(int argc, VALUE * argv, VALUE obj)
 {
     EB_Error_Code retcode;
     char buffer[1024];
-    int param[4];
+    unsigned int param[4];
     int i;
     if (argc != 4) {
         rb_raise(rb_eArgError, "4 args needed.(code1-code4)");
@@ -1175,7 +1176,7 @@ reb_menu(VALUE obj)
         return Qnil;
     }
     else if (err != EB_SUCCESS) {
-        rb_raise(rb_eRuntimeError, eb_error_message(err));
+        rb_raise(rb_eRuntimeError, "%s", eb_error_message(err));
         return Qfalse;
     }
     return content_fetch_from_pos(obj, eb, &pos,
