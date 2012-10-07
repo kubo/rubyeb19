@@ -11,6 +11,7 @@
 
 
 #include "ruby.h"
+#include <ruby/encoding.h>
 
 #ifndef rb_iterator_p
 #define rb_iterator_p() rb_block_given_p()
@@ -62,6 +63,8 @@
 
 #define APPENDIX_EB_IVAR "__appendix"
 
+#define REB_TO_RB_ENCODING(reb) rb_enc_from_index(NUM2INT(rb_ivar_get(reb, sym_eb_encidx)))
+
 struct ExtFont {
     int code;
     int wideflag;               /* boolean */
@@ -81,6 +84,8 @@ static VALUE cEBPosition;
 static VALUE cEBExtFont;
 static VALUE cEBHook;
 static VALUE cEBAppendix;
+
+static VALUE sym_eb_encidx;
 
 static ID id_call;
 
@@ -171,6 +176,7 @@ reb_initialize(VALUE klass)
     reb_appendix = Data_Make_Struct(cEBAppendix, EB_Appendix, 0, finalize_appendix, appendix);
     eb_initialize_appendix(appendix);
     rb_iv_set(robj, APPENDIX_EB_IVAR, reb_appendix);
+    rb_ivar_set(robj, sym_eb_encidx, INT2FIX(rb_ascii8bit_encindex()));
 
     return robj;
 }
@@ -192,6 +198,8 @@ reb_bind(VALUE obj, VALUE path)
 {
     EB_Book *eb;
     int r;
+    EB_Character_Code charcode = EB_CHARCODE_INVALID;
+    int encidx;
 
     Data_Get_Struct(obj, EB_Book, eb);
     r = eb_bind(eb, StringValueCStr(path));
@@ -199,6 +207,21 @@ reb_bind(VALUE obj, VALUE path)
         rb_raise(rb_eRuntimeError, "%s", eb_error_message(r));
         return Qfalse;
     }
+
+    eb_character_code(eb, &charcode);
+    switch (charcode) {
+    case EB_CHARCODE_ISO8859_1:
+        encidx = rb_enc_find_index("ISO-8859-1");
+        break;
+    case EB_CHARCODE_JISX0208:
+        encidx = rb_enc_find_index("EUC-JP");
+        break;
+    default:
+        encidx = rb_ascii8bit_encindex();
+        break;
+    }
+    rb_ivar_set(obj, sym_eb_encidx, INT2FIX(encidx));
+
     return obj;
 }
 
@@ -213,13 +236,13 @@ reb_disktype(VALUE obj)
     eb_error = eb_disc_type(eb, &r);
     switch (r) {
     case EB_DISC_EB:
-        return rb_str_new2("EB/EBG/EBXA/EBXA-C/S-EBXA");
+        return rb_usascii_str_new_cstr("EB/EBG/EBXA/EBXA-C/S-EBXA");
         break;
     case EB_DISC_EPWING:
-        return rb_str_new2("EPWING");
+        return rb_usascii_str_new_cstr("EPWING");
         break;
     }
-    return rb_str_new2("Unknown");
+    return rb_usascii_str_new_cstr("Unknown");
 }
 
 static VALUE
@@ -253,24 +276,24 @@ reb_path(VALUE obj)
     Data_Get_Struct(obj, EB_Book, eb);
     eb_error = eb_path(eb, r);
 
-    return rb_str_new2(r);
+    return rb_filesystem_str_new_cstr(r);
 }
 
 static VALUE
 reb_charcode(VALUE obj)
 {
     EB_Book *eb;
-    EB_Character_Code r;
+    EB_Character_Code r = EB_CHARCODE_INVALID;
 
     Data_Get_Struct(obj, EB_Book, eb);
     eb_error = eb_character_code(eb, &r);
 
     switch (r) {
     case EB_CHARCODE_ISO8859_1:
-        return rb_str_new2("ISO8859_1");
+        return rb_usascii_str_new_cstr("ISO8859_1");
         break;
     case EB_CHARCODE_JISX0208:
-        return rb_str_new2("JISX0208");
+        return rb_usascii_str_new_cstr("JISX0208");
         break;
     }
     return Qnil;
@@ -311,11 +334,13 @@ reb_subbooktitle(int argc, VALUE * argv, VALUE obj)
 {
     EB_Book *eb;
     char r[1024];               /*絶対値はまずいと思う */
+    rb_encoding *enc = REB_TO_RB_ENCODING(obj);
 
     Data_Get_Struct(obj, EB_Book, eb);
     eb_error = (argc == 0) ?
         eb_subbook_title(eb, r) : eb_subbook_title2(eb, NUM2INT(argv[0]), r);
-    return rb_str_new2(r);
+
+    return rb_external_str_new_with_enc(r, strlen(r), enc);
 }
 
 static VALUE
@@ -441,6 +466,7 @@ content_read(VALUE reb, EB_Book * eb, EB_Appendix * appendix, EB_Hookset * text_
 {
     ssize_t len;
     char desc[MAX_STRLEN + 1];
+    rb_encoding *enc = REB_TO_RB_ENCODING(reb);
 
     eb_error = eb_read_text(eb, appendix, text_hookset, (void *) reb,
                             MAX_STRLEN, desc, &len);
@@ -449,7 +475,7 @@ content_read(VALUE reb, EB_Book * eb, EB_Appendix * appendix, EB_Hookset * text_
         rb_raise(rb_eRuntimeError, "fail fetching text");
         return Qfalse;
     }
-    return rb_str_new(desc, len);
+    return rb_external_str_new_with_enc(desc, len, enc);
 }
 
 static VALUE
@@ -470,6 +496,7 @@ get_item(VALUE reb, EB_Book * eb, EB_Hit * hit)
     VALUE item;
     char desc[MAX_STRLEN + 1];
     ssize_t len;
+    rb_encoding *enc = REB_TO_RB_ENCODING(reb);
     item = rb_ary_new2(2);
 
     if (eb_seek_text(eb, &(hit->heading)) < 0) {
@@ -487,7 +514,7 @@ get_item(VALUE reb, EB_Book * eb, EB_Hit * hit)
         return Qfalse;
     }
 
-    rb_ary_push(item, rb_str_new(desc, len));
+    rb_ary_push(item, rb_external_str_new_with_enc(desc, len, enc));
     rb_ary_push(item, content_fetch_from_pos(reb, eb, &(hit->text), appendix, text_hookset));
 
     return item;
@@ -544,9 +571,10 @@ hitmaker(VALUE reb, EB_Book * eb, unsigned int max, int flag)
 }
 
 static void
-set_keywords(VALUE array, char **buffer)
+set_keywords(VALUE array, char **buffer, volatile VALUE *gc_guard, rb_encoding *enc)
 {
     int i, sz;
+
     if (TYPE(array) != T_ARRAY) {
         rb_raise(rb_eTypeError, "wordlist must be array of String.");
     }
@@ -556,8 +584,8 @@ set_keywords(VALUE array, char **buffer)
         rb_raise(rb_eRuntimeError, "too many keywords(%d).", sz);
     }
     for (i = 0; i < sz; i++) {
-        VALUE entry = rb_ary_entry(array, i);
-        buffer[i] = StringValueCStr(entry);
+        gc_guard[i] = rb_str_export_to_enc(rb_ary_entry(array, i), enc);
+        buffer[i] = RSTRING_PTR(gc_guard[i]);
     }
     buffer[sz] = NULL;
 }
@@ -571,6 +599,8 @@ easy_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     char *buffer[MAX_KEYWORDS + 1];
     int max;
     int r;
+    rb_encoding *enc = REB_TO_RB_ENCODING(obj);
+    volatile VALUE gc_guard[MAX_KEYWORDS];
 
     if (argc < 1) {
         rb_raise(rb_eArgError, "missing searchstring");
@@ -578,10 +608,11 @@ easy_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     }
 
     if (wordtype == SEARCHTYPE_WORD) {
-        word = StringValueCStr(argv[0]);
+        VALUE str = rb_str_export_to_enc(argv[0], enc);
+        word = RSTRING_PTR(str);
     }
     else {
-        set_keywords(argv[0], buffer);
+        set_keywords(argv[0], buffer, gc_guard, enc);
         word = buffer;
     }
     max = (argc > 1) ? NUM2INT(argv[1]) : -1;
@@ -638,6 +669,7 @@ hitmaker2(VALUE reb, EB_Book * eb, unsigned int max, int flag)
     char descbuf2[MAX_STRLEN + 1];
     char *prevdesc;
     int prevpage, prevoffset;
+    rb_encoding *enc = REB_TO_RB_ENCODING(reb);
     desc = descbuf1;
 
 /*** this 2 lines necessary? (2/4) eblook do like this ***/
@@ -678,7 +710,7 @@ hitmaker2(VALUE reb, EB_Book * eb, unsigned int max, int flag)
 
             item = rb_ary_new2(2);
             rb_ary_push(item, Data_Make_Struct(cEBPosition, EB_Position, 0, free, ebpos));
-            rb_ary_push(item, rb_str_new(desc, len));
+            rb_ary_push(item, rb_external_str_new_with_enc(desc, len, enc));
             ebpos->page = hits[i].text.page;
             ebpos->offset = hits[i].text.offset;
 
@@ -725,6 +757,8 @@ position_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     void *word;
     int max;
     int r;
+    rb_encoding *enc = REB_TO_RB_ENCODING(obj);
+    volatile VALUE gc_guard[MAX_KEYWORDS];
 
     if (argc < 1) {
         rb_raise(rb_eArgError, "missing searchstring");
@@ -732,10 +766,11 @@ position_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     }
 
     if (wordtype == SEARCHTYPE_WORD) {
-        word = StringValueCStr(argv[0]);
+        VALUE str = rb_str_export_to_enc(argv[0], enc);
+        word = RSTRING_PTR(str);
     }
     else {
-        set_keywords(argv[0], buffer);
+        set_keywords(argv[0], buffer, gc_guard, enc);
         word = buffer;
     }
     max = (argc > 1) ? NUM2INT(argv[1]) : -1;
@@ -1033,6 +1068,7 @@ read_binary(EB_Book * eb, long maxlen, int iterateflag)
                 break;
         }
     }
+    rb_obj_taint(robj);
 
     return iterateflag ? INT2NUM(readbytes) : robj;
 }
@@ -1300,7 +1336,7 @@ font2bitmapformat(struct ExtFont *font,
     };
 
     (*conv_func) (font->bitmap, width, height, buffer, &size);
-    robj = rb_str_new(buffer, size);
+    robj = rb_tainted_str_new(buffer, size);
     free(buffer);
     return robj;
 }
@@ -1578,6 +1614,7 @@ Init_eb()
 #endif
 #endif
     id_call = rb_intern("call");
+    sym_eb_encidx = ID2SYM(rb_intern("@__ruby_eb_encidx__"));
 
     mEB = rb_define_module("EB");
     rb_define_const(mEB,"RUBYEB_VERSION",rb_str_new2(RUBYEB_VERSION));
