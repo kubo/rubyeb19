@@ -80,7 +80,7 @@ ID id_call;
 int
 text_hook(EB_Book * book, EB_Appendix * appendix, void *container, EB_Hook_Code code, int argc, const int *argv)
 {
-    VALUE func, ret_buff, rb_argv, rb_eb, rb_hookset;
+    VALUE func, ret_buff, rargv, rb_eb, rb_hookset;
     int idx;
     char *tmpbuffer;
 
@@ -92,17 +92,17 @@ text_hook(EB_Book * book, EB_Appendix * appendix, void *container, EB_Hook_Code 
 
     func = rb_ary_entry(rb_iv_get(rb_hookset, HOOKSET_PROCS_IVAR), code);
 
-    rb_argv = rb_ary_new2(argc);
+    rargv = rb_ary_new2(argc);
     for (idx = 0; idx < argc; idx++) {
-        rb_ary_store(rb_argv, idx, INT2FIX(argv[idx]));
+        rb_ary_store(rargv, idx, INT2FIX(argv[idx]));
     }
 
-    ret_buff = rb_funcall(func, id_call, 2, rb_eb, rb_argv);
+    ret_buff = rb_funcall(func, id_call, 2, rb_eb, rargv);
     if (ret_buff != Qnil) {
         if (TYPE(ret_buff) == T_STRING) {
             ret_buff = rb_funcall(ret_buff, rb_intern("to_str"), 0);
         }
-        tmpbuffer = STR2CSTR(ret_buff);
+        tmpbuffer = StringValueCStr(ret_buff);
         eb_write_text_string(book, tmpbuffer);
     }
     return 0;
@@ -187,7 +187,7 @@ reb_bind(VALUE obj, VALUE path)
     int r;
 
     Data_Get_Struct(obj, EB_Book, eb);
-    r = eb_bind(eb, STR2CSTR(path));
+    r = eb_bind(eb, StringValueCStr(path));
     if (r != EB_SUCCESS) {
         rb_raise(rb_eRuntimeError, eb_error_message(r));
         return Qfalse;
@@ -544,12 +544,13 @@ set_keywords(VALUE array, char **buffer)
         rb_raise(rb_eTypeError, "wordlist must be array of String.");
     }
 
-    sz = RARRAY(array)->len;
+    sz = RARRAY_LEN(array);
     if (sz > MAX_KEYWORDS) {
         rb_raise(rb_eRuntimeError, "too many keywords(%d).", sz);
     }
     for (i = 0; i < sz; i++) {
-        buffer[i] = STR2CSTR(rb_ary_entry(array, i));
+        VALUE entry = rb_ary_entry(array, i);
+        buffer[i] = StringValueCStr(entry);
     }
     buffer[sz] = NULL;
 }
@@ -570,7 +571,7 @@ easy_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     }
 
     if (wordtype == SEARCHTYPE_WORD) {
-        word = STR2CSTR(argv[0]);
+        word = StringValueCStr(argv[0]);
     }
     else {
         set_keywords(argv[0], buffer);
@@ -723,7 +724,7 @@ position_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     }
 
     if (wordtype == SEARCHTYPE_WORD) {
-        word = STR2CSTR(argv[0]);
+        word = StringValueCStr(argv[0]);
     }
     else {
         set_keywords(argv[0], buffer);
@@ -785,7 +786,7 @@ reb_content(VALUE obj, VALUE position)
         do {
             rb_yield(robj);
             robj = content_read(obj, eb, apx, thook);
-            dlen = MAX_STRLEN - RSTRING(robj)->len;
+            dlen = MAX_STRLEN - RSTRING_LEN(robj);
         } while (dlen == 0);
     }
     return robj;
@@ -1212,7 +1213,7 @@ reb_appendixpath(VALUE obj, VALUE path)
     EB_Appendix *appendix;
     appendix = get_eb_appendix(obj);
     if (path != Qnil) {
-        eb_bind_appendix(appendix, STR2CSTR(path));
+        eb_bind_appendix(appendix, StringValueCStr(path));
     }
     else {
         eb_finalize_appendix(appendix);
