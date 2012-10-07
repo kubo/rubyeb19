@@ -67,17 +67,17 @@ static EB_Error_Code eb_error;
 
 
 
-VALUE mEB;
-VALUE cEBook;
-VALUE cEBCancel;
-VALUE cEBPosition;
-VALUE cEBExtFont;
-VALUE cEBHook;
-VALUE cEBAppendix;
+static VALUE mEB;
+static VALUE cEBook;
+static VALUE cEBCancel;
+static VALUE cEBPosition;
+static VALUE cEBExtFont;
+static VALUE cEBHook;
+static VALUE cEBAppendix;
 
-ID id_call;
+static ID id_call;
 
-int
+static int
 text_hook(EB_Book * book, EB_Appendix * appendix, void *container, EB_Hook_Code code, int argc, const int *argv)
 {
     VALUE func, ret_buff, rargv, rb_eb, rb_hookset;
@@ -371,7 +371,7 @@ reb_unsetsubbook(VALUE obj)
     return obj;
 }
 
-VALUE
+static VALUE
 have_search(VALUE obj, EB_Error_Code(*funct) (EB_Book *))
 {
     EB_Book *eb;
@@ -455,7 +455,7 @@ content_fetch_from_pos(VALUE reb, EB_Book * eb, EB_Position * pos, EB_Appendix *
     return content_read(reb, eb, appendix, text_hookset);
 }
 
-VALUE
+static VALUE
 get_item(VALUE reb, EB_Book * eb, EB_Hit * hit)
 {
     EB_Hookset *text_hookset;
@@ -487,7 +487,7 @@ get_item(VALUE reb, EB_Book * eb, EB_Hit * hit)
 }
 
 
-VALUE
+static VALUE
 hitmaker(VALUE reb, EB_Book * eb, unsigned int max, int flag)
 {
     int hitpushed, hitcount;
@@ -536,7 +536,7 @@ hitmaker(VALUE reb, EB_Book * eb, unsigned int max, int flag)
     return (flag == 0) ? robj : INT2NUM(hitpushed);
 }
 
-void
+static void
 set_keywords(VALUE array, char **buffer)
 {
     int i, sz;
@@ -617,7 +617,7 @@ reb_searchkeyword(int argc, VALUE * argv, VALUE obj)
 
 
 /*   Thanks for Kuroda-san  */
-VALUE
+static VALUE
 hitmaker2(VALUE reb, EB_Book * eb, unsigned int max, int flag)
 {
     int hitcount, i, broken;
@@ -709,7 +709,7 @@ hitmaker2(VALUE reb, EB_Book * eb, unsigned int max, int flag)
     return (flag == 0) ? robj : INT2NUM(hitpushed);
 }
 
-VALUE
+static VALUE
 position_search(int argc, VALUE * argv, VALUE obj, int wordtype,
                 EB_Error_Code(*funct) ())
 {
@@ -876,7 +876,7 @@ reb_font_list(VALUE obj)
     return robj;
 }
 
-EB_Font_Code
+static EB_Font_Code
 get_fontcode(EB_Book * eb)
 {
     EB_Font_Code r;
@@ -1487,7 +1487,7 @@ reb_dontuseexception(VALUE obj)
     return Qfalse;
 }
 
-void
+static void
 define_constants_under(VALUE mod)
 {
     rb_define_const(mod, "HOOK_INITIALIZE", INT2FIX(EB_HOOK_INITIALIZE));
