@@ -19,6 +19,13 @@
 
 #if HAVE_EB_SYSDEFS_H
 #include <eb/sysdefs.h>
+#if (defined RUBY_EB_ENABLE_PTHREAD && !defined(EB_ENABLE_PTHREAD)) \
+ || (!defined RUBY_EB_ENABLE_PTHREAD && defined(EB_ENABLE_PTHREAD))
+#error The EB library is incompatible with EB heders.
+#endif
+
+#elif defined RUBY_EB_ENABLE_PTHREAD
+#define EBCONF_ENABLE_PTHREAD 1
 #endif
 
 #include <eb/eb.h>
@@ -1559,6 +1566,17 @@ define_constants_under(VALUE mod)
 void
 Init_eb()
 {
+#ifdef HAVE_EB_PTHREAD_ENABLED
+#ifdef RUBY_EB_ENABLE_PTHREAD
+    if (!eb_pthread_enabled()) {
+       rb_raise(rb_eRuntimeError, "The RubyEB is compiled for pthread-enabled EB library.");
+     }
+#else
+    if (eb_pthread_enabled()) {
+       rb_raise(rb_eRuntimeError, "The RubyEB is compiled for pthread-disabled EB library.");
+     }
+#endif
+#endif
     id_call = rb_intern("call");
 
     mEB = rb_define_module("EB");
