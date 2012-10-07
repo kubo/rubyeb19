@@ -11,7 +11,6 @@
 
 
 #include "ruby.h"
-#include <ruby/encoding.h>
 
 #ifndef rb_iterator_p
 #define rb_iterator_p() rb_block_given_p()
@@ -63,7 +62,20 @@
 
 #define APPENDIX_EB_IVAR "__appendix"
 
+#ifdef HAVE_TYPE_RB_ENCODING
+#include <ruby/encoding.h>
 #define REB_TO_RB_ENCODING(reb) rb_enc_from_index(NUM2INT(rb_ivar_get(reb, sym_eb_encidx)))
+#else
+#define rb_encoding void
+#define REB_TO_RB_ENCODING(reb) NULL
+#define rb_ascii8bit_encindex() 0
+#define rb_enc_find_index(name) 0
+#define rb_usascii_str_new_cstr(ptr) rb_str_new2(ptr)
+#define rb_filesystem_str_new_cstr(ptr) rb_str_new2(ptr)
+/* "((void)enc, ...)" is a hack to suppress warnings: unused variable 'enc' */
+#define rb_external_str_new_with_enc(ptr, len, enc) ((void)enc, rb_tainted_str_new((ptr), (len)))
+#define rb_str_export_to_enc(str, enc) ((void)enc, (str))
+#endif
 
 struct ExtFont {
     int code;

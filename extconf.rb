@@ -6,6 +6,7 @@ have_library('eb')
 have_func("rb_block_proc")
 have_func("eb_bitmap_to_png")
 have_header('eb/sysdefs.h')
+have_type('rb_encoding', ['ruby/ruby.h', 'ruby/encoding.h'])
 
 if have_func("eb_pthread_enabled")
   print "checking that the EB library is pthread enabled... "
