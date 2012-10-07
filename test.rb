@@ -1,8 +1,13 @@
 #!/bin/env ruby -Ke
+# -*- coding: euc-jp -*-
 require "eb"
 
-if $KCODE!="EUC" then
-  raise RuntimeError,"lib eb requires EUC coding system"
+if defined? Encoding
+  Encoding.default_internal = "UTF-8"
+else
+  if $KCODE!="EUC" then
+    raise RuntimeError,"lib eb requires EUC coding system"
+  end
 end
 
 b=EB::Book.new
