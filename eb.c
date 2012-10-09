@@ -64,7 +64,7 @@
 
 #ifdef HAVE_TYPE_RB_ENCODING
 #include <ruby/encoding.h>
-#define REB_TO_RB_ENCODING(reb) rb_enc_from_index(NUM2INT(rb_ivar_get(reb, sym_eb_encidx)))
+#define REB_TO_RB_ENCODING(reb) rb_enc_from_index(NUM2INT(rb_ivar_get(reb, id_eb_encidx)))
 #else
 #define rb_encoding void
 #define REB_TO_RB_ENCODING(reb) NULL
@@ -97,9 +97,8 @@ static VALUE cEBExtFont;
 static VALUE cEBHook;
 static VALUE cEBAppendix;
 
-static VALUE sym_eb_encidx;
-
 static ID id_call;
+static ID id_eb_encidx;
 
 static int
 text_hook(EB_Book * book, EB_Appendix * appendix, void *container, EB_Hook_Code code, int argc, const int *argv)
@@ -188,7 +187,7 @@ reb_initialize(VALUE klass)
     reb_appendix = Data_Make_Struct(cEBAppendix, EB_Appendix, 0, finalize_appendix, appendix);
     eb_initialize_appendix(appendix);
     rb_iv_set(robj, APPENDIX_EB_IVAR, reb_appendix);
-    rb_ivar_set(robj, sym_eb_encidx, INT2FIX(rb_ascii8bit_encindex()));
+    rb_ivar_set(robj, id_eb_encidx, INT2FIX(rb_ascii8bit_encindex()));
 
     return robj;
 }
@@ -232,7 +231,7 @@ reb_bind(VALUE obj, VALUE path)
         encidx = rb_ascii8bit_encindex();
         break;
     }
-    rb_ivar_set(obj, sym_eb_encidx, INT2FIX(encidx));
+    rb_ivar_set(obj, id_eb_encidx, INT2FIX(encidx));
 
     return obj;
 }
@@ -1626,7 +1625,7 @@ Init_eb()
 #endif
 #endif
     id_call = rb_intern("call");
-    sym_eb_encidx = ID2SYM(rb_intern("@__ruby_eb_encidx__"));
+    id_eb_encidx = rb_intern("@__ruby_eb_encidx__");
 
     mEB = rb_define_module("EB");
     rb_define_const(mEB,"RUBYEB_VERSION",rb_str_new2(RUBYEB_VERSION));
