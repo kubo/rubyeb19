@@ -291,7 +291,7 @@ static VALUE
 reb_path(VALUE obj)
 {
     EB_Book *eb;
-    char r[1024];               /*絶対値はまずいと思う */
+    char r[EB_MAX_PATH_LENGTH + 1];
 
     Data_Get_Struct(obj, EB_Book, eb);
     eb_error = eb_path(eb, r);
@@ -353,7 +353,7 @@ static VALUE
 reb_subbooktitle(int argc, VALUE * argv, VALUE obj)
 {
     EB_Book *eb;
-    char r[1024];               /*絶対値はまずいと思う */
+    char r[EB_MAX_TITLE_LENGTH + 1];
     rb_encoding *enc = REB_TO_RB_ENCODING(obj);
 
     Data_Get_Struct(obj, EB_Book, eb);
@@ -367,7 +367,7 @@ static VALUE
 reb_subbookdirectory(int argc, VALUE * argv, VALUE obj)
 {
     EB_Book *eb;
-    char r[1024];               /*絶対値はまずいと思う */
+    char r[EB_MAX_DIRECTORY_NAME_LENGTH + 1];
 
     Data_Get_Struct(obj, EB_Book, eb);
     eb_error = (argc == 0) ?
@@ -1206,7 +1206,7 @@ static VALUE
 reb_compose_mpegfilename(int argc, VALUE * argv, VALUE obj)
 {
     EB_Error_Code retcode;
-    char buffer[1024];
+    char buffer[EB_MAX_DIRECTORY_NAME_LENGTH + 1];
     unsigned int param[4];
     int i;
     if (argc != 4) {
