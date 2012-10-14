@@ -100,6 +100,15 @@ static VALUE cEBAppendix;
 static ID id_call;
 static ID id_eb_encidx;
 
+static void
+reb_check_type(VALUE obj, VALUE klass)
+{
+    if (!rb_obj_is_kind_of(obj, klass)) {
+        rb_raise(rb_eTypeError, "wrong argument type %s (expected %s)",
+                 rb_obj_classname(obj), rb_class2name(klass));
+    }
+}
+
 static int
 text_hook(EB_Book * book, EB_Appendix * appendix, void *container, EB_Hook_Code code, int argc, const int *argv)
 {
@@ -611,7 +620,11 @@ easy_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     int max;
     int r;
     rb_encoding *enc = REB_TO_RB_ENCODING(obj);
+    /* The following two variables are used to prevent GC from freeing
+     * temporary objects.
+     */
     volatile VALUE gc_guard[MAX_KEYWORDS];
+    volatile VALUE str;
 
     if (argc < 1) {
         rb_raise(rb_eArgError, "missing searchstring");
@@ -619,7 +632,7 @@ easy_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     }
 
     if (wordtype == SEARCHTYPE_WORD) {
-        VALUE str = rb_str_export_to_enc(argv[0], enc);
+        str = rb_str_export_to_enc(argv[0], enc);
         word = RSTRING_PTR(str);
     }
     else {
@@ -769,7 +782,11 @@ position_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     int max;
     int r;
     rb_encoding *enc = REB_TO_RB_ENCODING(obj);
+    /* The following two variables are used to prevent GC from freeing
+     * temporary objects.
+     */
     volatile VALUE gc_guard[MAX_KEYWORDS];
+    volatile VALUE str;
 
     if (argc < 1) {
         rb_raise(rb_eArgError, "missing searchstring");
@@ -777,7 +794,7 @@ position_search(int argc, VALUE * argv, VALUE obj, int wordtype,
     }
 
     if (wordtype == SEARCHTYPE_WORD) {
-        VALUE str = rb_str_export_to_enc(argv[0], enc);
+        str = rb_str_export_to_enc(argv[0], enc);
         word = RSTRING_PTR(str);
     }
     else {
@@ -830,6 +847,7 @@ reb_content(VALUE obj, VALUE position)
     VALUE robj;
 
     Data_Get_Struct(obj, EB_Book, eb);
+    reb_check_type(position, cEBPosition);
     Data_Get_Struct(position, EB_Position, ppos);
     apx = get_eb_appendix(obj);
     thook = get_eb_texthook(obj);
@@ -858,7 +876,7 @@ reb_content_noseek(VALUE obj)
 static VALUE
 reb_sethookset(VALUE obj, VALUE hkset)
 {
-    if (rb_funcall(hkset, rb_intern("is_a?"), 1, cEBHook) != Qtrue && hkset != Qnil) {
+    if (!rb_obj_is_kind_of(hkset, cEBHook) && !NIL_P(hkset)) {
         rb_raise(rb_eArgError, "hookset must be nil or an instance of Hookset");
         return Qfalse;
     }
@@ -1092,6 +1110,7 @@ reb_read_monographic(VALUE obj, VALUE pos, VALUE width, VALUE height)
     EB_Position *epos;
 
     Data_Get_Struct(obj, EB_Book, eb);
+    reb_check_type(pos, cEBPosition);
     Data_Get_Struct(pos, EB_Position, epos);
 
     retcode = eb_set_binary_mono_graphic(eb, epos, NUM2UINT(width), NUM2UINT(height));
@@ -1142,7 +1161,9 @@ reb_read_wavedata(int argc, VALUE * argv, VALUE obj)
     maxlen = (argc > 2) ? NUM2UINT(argv[2]) : MAX_STRLEN;
 
     Data_Get_Struct(obj, EB_Book, eb);
+    reb_check_type(argv[0], cEBPosition);
     Data_Get_Struct(argv[0], EB_Position, spos);
+    reb_check_type(argv[1], cEBPosition);
     Data_Get_Struct(argv[1], EB_Position, epos);
 
     retcode = eb_set_binary_wave(eb, spos, epos);
@@ -1495,13 +1516,17 @@ rebhk_register(int argc, VALUE * argv, VALUE self)
         break;
     case 2:
         proc = argv[1];
+        if (!rb_respond_to(proc, id_call)) {
+            rb_raise(rb_eArgError, "wrong type argument %s (should respond to 'call')",
+                     rb_obj_classname(proc));
+        }
         break;
     default:
         rb_raise(rb_eArgError, "wrong # of arguments");
         break;
     }
 
-    hook_type = FIX2UINT(argv[0]);
+    hook_type = NUM2UINT(argv[0]);
     rb_ary_store(rb_iv_get(self, HOOKSET_PROCS_IVAR), hook_type, proc);
     Data_Get_Struct(self, EB_Hookset, text_hookset);
     hook.code = hook_type;
