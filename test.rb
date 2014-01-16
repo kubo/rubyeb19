@@ -1,4 +1,4 @@
-#!/bin/env ruby -Ke
+#!/user/bin/env ruby -Ke
 # -*- coding: euc-jp -*-
 require "eb"
 
